@@ -64,8 +64,16 @@ void KeyaBus_Receive()
             keyaSteeringPosition = (int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1;
             keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
             int16_t current = (int16_t)((int16_t)KeyaBusReceiveData.buf[4] << 8 | (int16_t)KeyaBusReceiveData.buf[5]);
-
-            keyaSteeringPosition = (float)(keyaSteeringPosition) / (steerSettings.steerSensorCounts / 10);
+            if (updateRawPositionOffset)
+            {
+                keyaRawPositionOffset = keyaSteeringPosition;
+                updateRawPositionOffset = false;
+                steerSettings.wasOffset = 0;
+                helloSteerPosition = 0;
+                Serial.print("Keya WAS Offset set to: ");
+                Serial.println(keyaRawPositionOffset);
+			}
+            keyaSteeringPosition = (float)(keyaSteeringPosition - keyaRawPositionOffset) / (steerSettings.steerSensorCounts / 10);
 
             int16_t error = abs(keyaCurrentActualSpeed - keyaCurrentSetSpeed);
             static int16_t counter = 0;
@@ -93,6 +101,8 @@ void KeyaBus_Receive()
             Serial.print(keyaSteeringPosition);
 			Serial.print("\trawPosition: ");
 			Serial.print((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1);
+            Serial.print("\tcurrentOffset: ");
+			Serial.print(keyaRawPositionOffset);
             //Serial.print("\tCurrentActualSpeed: ");
             //Serial.print(keyaCurrentActualSpeed);
             //Serial.print("\tCurrent: ");

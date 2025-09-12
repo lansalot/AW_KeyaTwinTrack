@@ -678,7 +678,11 @@ void ReceiveUdp()
 				steerSettings.wasOffset = (autoSteerUdpData[10]);  //read was zero offset Lo
 
 				steerSettings.wasOffset |= (autoSteerUdpData[11] << 8);  //read was zero offset Hi
-
+				if (steerSettings.wasOffset != 0)
+				{
+					updateRawPositionOffset = true;
+					steerSettings.wasOffset = 0;
+				}
 				steerSettings.AckermanFix = (float)autoSteerUdpData[12] * 0.01;
 
 				//crc

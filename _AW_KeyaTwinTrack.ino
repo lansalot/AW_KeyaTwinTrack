@@ -54,6 +54,8 @@ BNO080 bno08x;
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
 
 elapsedMillis lastKeyaHeatbeat;
+int16_t keyaRawPositionOffset = 0;
+bool updateRawPositionOffset = false;
 bool keyaDetected = false;
 bool keyaIntendToSteer;
 int16_t keyaSteeringPosition;
