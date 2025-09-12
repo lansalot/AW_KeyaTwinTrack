@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "_AW_KeyaTwinTrack", "_AW_KeyaTwinTrack.vcxproj", "{C9DED58C-EF5A-18FB-B259-C01B43B49310}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
+		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM.ActiveCfg = Debug|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM.Build.0 = Debug|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM.Deploy.0 = Debug|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM64.Build.0 = Debug|ARM64
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM.ActiveCfg = Release|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM.Build.0 = Release|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM.Deploy.0 = Release|ARM
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM64.ActiveCfg = Release|ARM64
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM64.Build.0 = Release|ARM64
+		{C9DED58C-EF5A-18FB-B259-C01B43B49310}.Release|ARM64.Deploy.0 = Release|ARM64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E488731B-582C-4686-844E-E89538CF9001}
+	EndGlobalSection
+EndGlobal
