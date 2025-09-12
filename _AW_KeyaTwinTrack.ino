@@ -146,7 +146,7 @@ void setup()
 {
 	delay(500);               // Small delay so serial can monitor start up
 	set_arm_clock(450000000); // Set CPU speed to 150mhz
-	Serial.println("\r\n** AIO v4 Firmware 27.04.2025 (Inc Keya CANBUS & HPR Dual **\r\n");
+	Serial.println("\r\n** AIO v4 Firmware 12.09.2025 (Inc Keya CANBUS & HPR Dual **)\r\n");
 	Serial.print("CPU speed set to: ");
 	Serial.println(F_CPU_ACTUAL);
 
@@ -239,14 +239,6 @@ void setup()
 		}
 		if (useBNO08xI2C) break;
 	}
-
-	/// ******************************
-	/// WAS ADC CONTROL
-	Serial.println("Setting up WAS ADC");
-	analogReadResolution(12);
-	analogReadAveraging(16);
-	pinMode(WAS_SENSOR_PIN, INPUT_DISABLE);
-	/// ******************************
 
 	Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
