@@ -99,9 +99,17 @@ void KeyaBus_Receive()
             
             Serial.print("steeringPosition: ");
             Serial.print(keyaSteeringPosition);
-			Serial.print("\trawPosition: ");
+            Serial.print(" fakePosition: ");
+            if (keyaSteeringPosition < 0) {
+              fakePosition = keyaSteeringPosition + steerAngleSetPoint;
+            } else {
+              fakePosition = keyaSteeringPosition - steerAngleSetPoint;
+            }
+            keyaSteeringPosition = fakePosition;
+            Serial.print(fakePosition);
+			Serial.print(" rawPosition: "); 
 			Serial.print((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1);
-            Serial.print("\tcurrentOffset: ");
+            Serial.print("currentOffset: ");
 			Serial.print(keyaRawPositionOffset);
             //Serial.print("\tCurrentActualSpeed: ");
             //Serial.print(keyaCurrentActualSpeed);
@@ -113,33 +121,37 @@ void KeyaBus_Receive()
             //Serial.print(keyaCurrentSetSpeed);
             //Serial.print("\tCurrentActualSpeed: ");
             //Serial.print(keyaCurrentActualSpeed);
-            Serial.print("\tError:");
-            Serial.print(error);
-            Serial.print("\t");
+            Serial.print(" SASP: ");
+            Serial.print(steerAngleSetPoint);
+            Serial.print(" XTE: ");
+            Serial.print(XTE);
+            Serial.print(" Error:");
+            // Serial.print(error);
+            // Serial.print("\t");
             
-            
-            if (bitRead(KeyaBusReceiveData.buf[7], 0)) Serial.println("Disabled\t");
-            else Serial.println("Enabled \t");
+            Serial.println();            
+            // if (bitRead(KeyaBusReceiveData.buf[7], 0)) Serial.println("Disabled\t");
+            // else Serial.println("Enabled \t");
             
             // check if there's any motor diag/error data and parse it
             if (KeyaBusReceiveData.buf[7] > 1 || KeyaBusReceiveData.buf[6] > 0)
             {
-                if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
-                if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
+                // if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
 
-                if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
-                if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
+                // if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
                 
                 Serial.println("Kill Autosteer");
                 steerSwitch = 1;

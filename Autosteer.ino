@@ -578,9 +578,7 @@ void ReceiveUdp()
 				//Bit 8,9    set point steer angle * 100 is sent
 				steerAngleSetPoint = ((float)(autoSteerUdpData[8] | ((int8_t)autoSteerUdpData[9]) << 8)) * 0.01; //high low bytes
 
-				//Serial.print("steerAngleSetPoint: ");
-				//Serial.println(steerAngleSetPoint);
-
+        XTE = autoSteerUdpData[9];
 				//Serial.println(gpsSpeed);
 
 				if ((bitRead(guidanceStatus, 0) == 0) /* || (gpsSpeed < 0.1)*/ || (steerSwitch == 1))
@@ -729,6 +727,11 @@ void ReceiveUdp()
 				steerConfigInit();
 
 			}//end FB
+			else if (autoSteerUdpData[3] == 233) // XTE
+			{
+        XTE = ((float)(autoSteerUdpData[9] | ((int8_t)autoSteerUdpData[8]) << 8)); //high low bytes
+        Serial.println("!");
+      }
 			else if (autoSteerUdpData[3] == 200) // Hello from AgIO
 			{
 				if (Autosteer_running)

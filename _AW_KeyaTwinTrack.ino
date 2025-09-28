@@ -1,8 +1,8 @@
 
 // Serial Ports
 #define SerialAOG Serial               // AgIO USB conection
-#define SerialRTK Serial7               //RTK radio
-HardwareSerial* SerialGPS = &Serial3;   //Main postion receiver (GGA)
+#define SerialRTK Serial3 // aio board               //RTK radio
+HardwareSerial* SerialGPS = &Serial7;   //Main postion receiver (GGA)
 HardwareSerial* SerialGPS2 = &Serial2; // Dual heading receiver
 HardwareSerial* SerialIMU = &Serial5;   //IMU
 
@@ -52,6 +52,7 @@ BNO080 bno08x;
 // CRX2/CTX2 on Teensy are CAN2 on AIO board, CAN2 on Tony's board
 // CRX3/CTX3 on Teensy are CAN1 on AIO board, CAN3 on Tony's board
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
+float fakePosition = 0;
 
 elapsedMillis lastKeyaHeatbeat;
 int16_t keyaRawPositionOffset = 0;
@@ -61,6 +62,7 @@ bool keyaIntendToSteer;
 int16_t keyaSteeringPosition;
 int16_t keyaCurrentSetSpeed;
 int16_t keyaCurrentActualSpeed;
+float XTE;
 
 #define wheelBase 3.20
 int8_t workingDir;
