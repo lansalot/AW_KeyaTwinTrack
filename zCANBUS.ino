@@ -9,6 +9,9 @@ uint8_t keyaEnableResponse[] = { 0x60, 0x0D, 0x20, 0x00 };
 uint8_t keyaSpeedCommand[] = { 0x23, 0x00, 0x20, 0x01 };
 uint8_t keyaSpeedResponse[] = { 0x60, 0x00, 0x20, 0x00 };
 
+uint8_t keyaPositionCommand[] = { 0x23, 0x02, 0x20, 0x01 };
+uint8_t keyaPositionResponse[] = { 0x60, 0x00, 0x20, 0x00 };
+
 uint8_t keyaCurrentQuery[] = { 0x40, 0x00, 0x21, 0x01 };
 uint8_t keyaCurrentResponse[] = { 0x60, 0x00, 0x21, 0x01 };
 
@@ -30,6 +33,20 @@ uint8_t keyaEncoderSpeedResponse[] = { 0x60, 0x03, 0x21, 0x01 };
 
 uint64_t KeyaID = 0x06000001; // 0x01 is default ID
 
+int16_t degreesToPosition(float degrees) {
+	const float UNITS_PER_REV = 10000.0f;   // 0x2710
+	const float DEGREES_PER_REV = 360.0f;
+
+	float units = (degrees / DEGREES_PER_REV) * UNITS_PER_REV;
+
+	// Simple rounding
+	if (units >= 0) {
+		return (int16_t)(units + 0.5f);
+	}
+	else {
+		return (int16_t)(units - 0.5f);
+	}
+}
 
 void CAN_Setup()
 {
@@ -40,184 +57,176 @@ void CAN_Setup()
 
 void KeyaBus_Receive()
 {
-    CAN_message_t KeyaBusReceiveData;
-    if (Keya_Bus.read(KeyaBusReceiveData))
-    {
-        // Heatbeat
-        if (KeyaBusReceiveData.id == 0x07000001)
-        {
-            lastKeyaHeatbeat = 0;
+	CAN_message_t KeyaBusReceiveData;
+	if (Keya_Bus.read(KeyaBusReceiveData))
+	{
+		// Heartbeat
+		if (KeyaBusReceiveData.id == 0x07000001)
+		{
+			lastKeyaHeatbeat = 0;
 
-            if (!keyaDetected)
-            {
-                Serial.println("Keya heartbeat detected! Enabling Keya CANBUS");
-                keyaDetected = true;
-            }
-            // 0-1 - Cumulative value of angle (360 def / circle)
-            // 2-3 - Motor speed, signed int eg -500 or 500
-            // 4-5 - Motor current
-            // 6-7 - Control_Close (error code)
-            // TODO Yeah, if we ever see something here, fire off a disable, refuse to engage autosteer or..?
-
-            uint32_t time = millis();
-
-            keyaSteeringPosition = (int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1;
-            keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
-            int16_t current = (int16_t)((int16_t)KeyaBusReceiveData.buf[4] << 8 | (int16_t)KeyaBusReceiveData.buf[5]);
-            if (updateRawPositionOffset)
-            {
-                keyaRawPositionOffset = keyaSteeringPosition;
-                updateRawPositionOffset = false;
-                steerSettings.wasOffset = 0;
-                helloSteerPosition = 0;
-                Serial.print("Keya WAS Offset set to: ");
-                Serial.println(keyaRawPositionOffset);
+			if (!keyaDetected)
+			{
+				Serial.println("Keya heartbeat detected! Enabling Keya CANBUS");
+				keyaDetected = true;
 			}
-            keyaSteeringPosition = (float)(keyaSteeringPosition - keyaRawPositionOffset) / (steerSettings.steerSensorCounts / 10);
+			// 0-1 - Cumulative value of angle (360 def / circle)
+			// 2-3 - Motor speed, signed int eg -500 or 500
+			// 4-5 - Motor current
+			// 6-7 - Control_Close (error code)
+			// TODO Yeah, if we ever see something here, fire off a disable, refuse to engage autosteer or..?
 
-            int16_t error = abs(keyaCurrentActualSpeed - keyaCurrentSetSpeed);
-            static int16_t counter = 0;
-            
-            if (error > abs(keyaCurrentSetSpeed) + 10)
-            {
-                if (counter++ < 8)
-                {
-                    //Serial.print("Counter\t");
-                }
-                else
-                {
-                    //Serial.print("Stop\t");
-                    sensorReading = abs(abs(keyaCurrentSetSpeed) - error);
-                }
-            }
-            else
-            {
-                //Serial.print("Run\t");
-                sensorReading = 0;
-                counter = 0;
-            }
-            
-            Serial.print("steeringPosition: ");
-            Serial.print(keyaSteeringPosition);
-            Serial.print(" fakePosition: ");
-            if (keyaSteeringPosition < 0) {
-              fakePosition = keyaSteeringPosition + steerAngleSetPoint;
-            } else {
-              fakePosition = keyaSteeringPosition - steerAngleSetPoint;
-            }
-            keyaSteeringPosition = fakePosition;
-            Serial.print(fakePosition);
-			Serial.print(" rawPosition: "); 
+			uint32_t time = millis();
+
+			keyaSteeringPosition = (int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1;
+			keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
+			int16_t current = (int16_t)((int16_t)KeyaBusReceiveData.buf[4] << 8 | (int16_t)KeyaBusReceiveData.buf[5]);
+			if (updateRawPositionOffset)
+			{
+				keyaRawPositionOffset = keyaSteeringPosition;
+				updateRawPositionOffset = false;
+				steerSettings.wasOffset = 0;
+				helloSteerPosition = 0;
+				Serial.println();
+				Serial.print("Keya WAS Offset set to: ");
+				Serial.println(keyaRawPositionOffset);
+			}
+			keyaSteeringPosition = (float)(keyaSteeringPosition - keyaRawPositionOffset) / (steerSettings.steerSensorCounts / 10);
+
+			int16_t error = abs(keyaCurrentActualSpeed - keyaCurrentSetSpeed);
+			static int16_t counter = 0;
+
+			if (error > abs(keyaCurrentSetSpeed) + 10)
+			{
+				if (counter++ < 8)
+				{
+					//Serial.print("Counter\t");
+				}
+				else
+				{
+					//Serial.print("Stop\t");
+					sensorReading = abs(abs(keyaCurrentSetSpeed) - error);
+				}
+			}
+			else
+			{
+				//Serial.print("Run\t");
+				sensorReading = 0;
+				counter = 0;
+			}
+			Serial.println();
+			Serial.print(" steeringPosition: ");
+			Serial.print(keyaSteeringPosition);
+			Serial.print(" rawPosition: ");
 			Serial.print((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1);
-            Serial.print("currentOffset: ");
-			Serial.print(keyaRawPositionOffset);
-            //Serial.print("\tCurrentActualSpeed: ");
-            //Serial.print(keyaCurrentActualSpeed);
-            //Serial.print("\tCurrent: ");
-            //Serial.print(current);
-            //Serial.print("\tCurrentSetSpeed: ");
-            //
-            //
-            //Serial.print(keyaCurrentSetSpeed);
-            //Serial.print("\tCurrentActualSpeed: ");
-            //Serial.print(keyaCurrentActualSpeed);
-            Serial.print(" SASP: ");
-            Serial.print(steerAngleSetPoint);
-            Serial.print(" XTE: ");
-            Serial.print(XTE);
-            Serial.print(" Error:");
-            // Serial.print(error);
-            // Serial.print("\t");
-            
-            Serial.println();            
-            // if (bitRead(KeyaBusReceiveData.buf[7], 0)) Serial.println("Disabled\t");
-            // else Serial.println("Enabled \t");
-            
-            // check if there's any motor diag/error data and parse it
-            if (KeyaBusReceiveData.buf[7] > 1 || KeyaBusReceiveData.buf[6] > 0)
-            {
-                // if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
-                // if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
+			//Serial.print("\tCurrentActualSpeed: ");
+			//Serial.print(keyaCurrentActualSpeed);
+			//Serial.print("\tCurrent: ");
+			//Serial.print(current);
+			//Serial.print("\tCurrentSetSpeed: ");
+			//
+			//
+			//Serial.print(keyaCurrentSetSpeed);
+			//Serial.print("\tCurrentActualSpeed: ");
+			//Serial.print(keyaCurrentActualSpeed);
+			Serial.print(" SASP: ");
+			Serial.print(steerAngleSetPoint);
+			//            Serial.print(" Error:");
+						// Serial.print(error);
+						// Serial.print("\t");
 
-                // if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
-                // if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
-                
-                Serial.println("Kill Autosteer");
-                steerSwitch = 1;
-                currentState = 1;
-                previous = 0;
-            }
+						// if (bitRead(KeyaBusReceiveData.buf[7], 0)) Serial.println("Disabled\t");
+						// else Serial.println("Enabled \t");
 
-            //Serial.println();
-        }
-    }
+						// check if there's any motor diag/error data and parse it
+			if (KeyaBusReceiveData.buf[7] > 1 || KeyaBusReceiveData.buf[6] > 0)
+			{
+				// if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
+				// if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
+
+				// if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
+				// if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
+
+				Serial.println("Kill Autosteer");
+				steerSwitch = 1;
+				currentState = 1;
+				previous = 0;
+			}
+
+			//Serial.println();
+		}
+	}
 }
 
-void SteerKeya(int steerSpeed, bool intendToSteer)
+void SteerKeya(bool intendToSteer)
 {
-    if (keyaDetected)
-    {
-        int16_t actualSpeed;
-        if (intendToSteer)
-        {
-            actualSpeed = steerSpeed * 3.9;
-        }
-        else
-        {
-            keyaCommand(keyaDisableCommand);
-            actualSpeed = 0;
-        }
+	if (keyaDetected)
+	{
+		int16_t actualSpeed;
+		if (!intendToSteer) {
+			keyaCommand(keyaDisableCommand);
+			actualSpeed = 0;
+		}
 
-        keyaCurrentSetSpeed = actualSpeed * 0.1;
+		CAN_message_t KeyaBusSendData;
+		KeyaBusSendData.id = KeyaID;
+		KeyaBusSendData.flags.extended = true;
+		KeyaBusSendData.len = 8;
+		memcpy(KeyaBusSendData.buf, keyaPositionCommand, 4);
+		intendedSteerAngle = degreesToPosition(steerAngleSetPoint);
+		if (intendToSteer) {
+			Serial.print(" HEX: ");
+			Serial.print(intendedSteerAngle);
+			Serial.print(" / ");
+			Serial.print(intendedSteerAngle, HEX);
+			KeyaBusSendData.buf[4] = highByte(intendedSteerAngle);
+			KeyaBusSendData.buf[5] = lowByte(intendedSteerAngle);
+			KeyaBusSendData.buf[6] = 0xff;
+			KeyaBusSendData.buf[7] = 0xff;
+			Keya_Bus.write(KeyaBusSendData); // position
 
-        CAN_message_t KeyaBusSendData;
-        KeyaBusSendData.id = KeyaID;
-        KeyaBusSendData.flags.extended = true;
-        KeyaBusSendData.len = 8;
-        memcpy(KeyaBusSendData.buf, keyaSpeedCommand, 4);
-        if (intendToSteer) {
-            if (steerSpeed < 0)
-            {
-                KeyaBusSendData.buf[4] = highByte(actualSpeed);
-                KeyaBusSendData.buf[5] = lowByte(actualSpeed);
-                KeyaBusSendData.buf[6] = 0xff;
-                KeyaBusSendData.buf[7] = 0xff;
-            }
-            else
-            {
-                KeyaBusSendData.buf[4] = highByte(actualSpeed);
-                KeyaBusSendData.buf[5] = lowByte(actualSpeed);
-                KeyaBusSendData.buf[6] = 0x00;
-                KeyaBusSendData.buf[7] = 0x00;
-            }
-            Keya_Bus.write(KeyaBusSendData);
-        }
+			memcpy(KeyaBusSendData.buf, keyaSpeedCommand, 4);
+			KeyaBusSendData.buf[4] = 0x01;
+			KeyaBusSendData.buf[5] = 0x08;
+			if (steerAngleSetPoint < 0) {
+				KeyaBusSendData.buf[6] = 0xff;
+				KeyaBusSendData.buf[7] = 0xff;
+				Serial.print(" <<< ");
+			}
+			else {
+				KeyaBusSendData.buf[6] = 0x00;
+				KeyaBusSendData.buf[7] = 0x00;
+				Serial.print(" >>> ");
+			}
+			Keya_Bus.write(KeyaBusSendData); // speed
+		}
 
-        if(intendToSteer) keyaCommand(keyaEnableCommand);
-    }
+
+		if (intendToSteer) keyaCommand(keyaEnableCommand);
+	}
 }
 
 // only issue one query at a time, wait for respone
 void keyaCommand(uint8_t command[])
 {
-    if (keyaDetected)
-    {
-        CAN_message_t KeyaBusSendData;
-        KeyaBusSendData.id = KeyaID;
-        KeyaBusSendData.flags.extended = true;
-        KeyaBusSendData.len = 8;
-        memcpy(KeyaBusSendData.buf, command, 4);
-        Keya_Bus.write(KeyaBusSendData);
-    }
+	if (keyaDetected)
+	{
+		CAN_message_t KeyaBusSendData;
+		KeyaBusSendData.id = KeyaID;
+		KeyaBusSendData.flags.extended = true;
+		KeyaBusSendData.len = 8;
+		memcpy(KeyaBusSendData.buf, command, 4);
+		Keya_Bus.write(KeyaBusSendData);
+	}
 }

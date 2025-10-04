@@ -31,6 +31,8 @@ char solQuality[2];
 char umHeading[15];
 char umRoll[15];
 
+elapsedMillis IMU_LastReadTime;
+
 // If odd characters showed up.
 void errorHandler()
 {
@@ -177,8 +179,14 @@ void imuHandler()
 
 void readBNO()
 {
-	if (bno08x.dataAvailable() == true)
+	if (IMU_LastReadTime > 5000) {
+		sendHardwareMessage("No IMU for 5 seconds!!", 2);
+		IMU_LastReadTime = 0;
+
+	}
+	if (bno08x.dataAvailable())
 	{
+		IMU_LastReadTime = 0;
 		float dqx, dqy, dqz, dqw, dacr;
 		uint8_t dac;
 

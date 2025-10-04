@@ -31,6 +31,7 @@
     <ClCompile Include="BNO08x_AOG.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="_Utils.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\._AW_KeyaTwinTrack.vsarduino.h">

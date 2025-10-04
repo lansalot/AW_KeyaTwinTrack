@@ -52,7 +52,7 @@ BNO080 bno08x;
 // CRX2/CTX2 on Teensy are CAN2 on AIO board, CAN2 on Tony's board
 // CRX3/CTX3 on Teensy are CAN1 on AIO board, CAN3 on Tony's board
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
-float fakePosition = 0;
+int32_t intendedSteerAngle = 0;
 
 elapsedMillis lastKeyaHeatbeat;
 int16_t keyaRawPositionOffset = 0;
@@ -241,7 +241,7 @@ void setup()
 		}
 		if (useBNO08xI2C) break;
 	}
-
+	if (!useBNO08xI2C) sendHardwareMessage("No IMU", 10);
 	Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
