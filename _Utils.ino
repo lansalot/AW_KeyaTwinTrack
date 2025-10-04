@@ -10,8 +10,6 @@ void sendHardwareMessage(const String& message, byte seconds)
         Serial.println("Error: Message too long for hardware message buffer");
         return;
     }
-    int totalLength = 7 + msgLen + 1; // header(7) + message + CRC(1)
-
     hardwareMessage[4] = msgLen + 2;  // message length + display config
     hardwareMessage[5] = seconds;           // seconds to display
     hardwareMessage[6] = 0;           // color (0 = normal, 1 = alt)

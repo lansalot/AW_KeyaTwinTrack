@@ -98,12 +98,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AutosteerPID.ino">
-      <FileType>CppCode</FileType>
-      <DeploymentContent>true</DeploymentContent>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="zEthernet.ino">
       <FileType>CppCode</FileType>
       <DeploymentContent>true</DeploymentContent>

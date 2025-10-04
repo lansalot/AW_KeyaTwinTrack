@@ -58,11 +58,10 @@ elapsedMillis lastKeyaHeatbeat;
 bool updateRawPositionOffset = false;
 bool keyaDetected = false;
 bool keyaIntendToSteer;
-int32_t keyaSteeringPositionUnScaled = 0;
-int32_t keyaCurrentActualSpeed = 0;
-int32_t keyaCurrentSetSpeed = 0; 
-float keyaSteerAngleScaled;
-
+int16_t keyaCurrentSteeringPositionUnScaled = 0;
+int32_t keyaCurrentSteerAngleScaled;
+int16_t keyaCurrentActualSpeed = 0;
+int16_t keyaCurrentSetSpeed = 0; 
 
 float XTE;
 

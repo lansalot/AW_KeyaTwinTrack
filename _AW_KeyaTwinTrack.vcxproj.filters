@@ -17,7 +17,6 @@
   <ItemGroup>
     <ClCompile Include="_AW_KeyaTwinTrack.ino" />
     <ClCompile Include="Autosteer.ino" />
-    <ClCompile Include="AutosteerPID.ino" />
     <ClCompile Include="BNO08x_AOG.h">
       <Filter>Header Files</Filter>
     </ClCompile>

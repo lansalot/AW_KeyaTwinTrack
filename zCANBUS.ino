@@ -1,4 +1,4 @@
-
+﻿
 uint8_t keyaPositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
 
 uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01 };
@@ -34,8 +34,9 @@ uint8_t keyaEncoderSpeedResponse[] = { 0x60, 0x03, 0x21, 0x01 };
 
 uint64_t KeyaID = 0x06000001; // 0x01 is default ID
 CAN_message_t KeyaBusSendData;
+int16_t intendedAngleConverted;
 
-
+float majorScale = 50.0f;
 
 // int16_t degreesToPosition(float degrees) {
 // 	const float UNITS_PER_REV = 10000.0f;   // 0x2710
@@ -53,30 +54,27 @@ CAN_message_t KeyaBusSendData;
 // }
 
 int16_t degreesToPosition(float degrees) {
-    const float UNITS_PER_REV = 10000.0f;   // 0x2710
-    const float DEGREES_PER_REV = 360.0f;
-
-	float scaledDegrees = degrees * steerSettings.steerSensorCounts;
-
-    float units = (scaledDegrees / DEGREES_PER_REV) * UNITS_PER_REV;
-
-    // Simple rounding
-    if (units >= 0) {
-        return (int16_t)(units + 0.5f);
-    }
-    else {
-        return (int16_t)(units - 0.5f);
-    }
-}
-
-float positionToDegrees(int16_t position) {
 	const float UNITS_PER_REV = 10000.0f;   // 0x2710
 	const float DEGREES_PER_REV = 360.0f;
 
-	float degrees = (position * DEGREES_PER_REV) /
-		(UNITS_PER_REV * steerSettings.steerSensorCounts);
+	// steerSensorCounts acts as a scale factor, default 100 → 1:1 mapping for 360° = 10000 units
+	float units = (degrees / DEGREES_PER_REV) * (UNITS_PER_REV * (steerSettings.steerSensorCounts / majorScale));
+	// Round to nearest int16_t
+	if (units >= 0)
+		return (int16_t)(units + 0.5f);
+	else
+		return (int16_t)(units - 0.5f);
+}
+
+float positionToDegrees(int16_t position) {
+	const float UNITS_PER_REV = 10000.0f;
+	const float DEGREES_PER_REV = 360.0f;
+
+	float degrees = (position * DEGREES_PER_REV) / (UNITS_PER_REV * (steerSettings.steerSensorCounts / majorScale));
+
 	return degrees;
 }
+
 
 void CAN_Setup()
 {
@@ -92,12 +90,22 @@ void CAN_Setup()
 	Serial.println("Keya CANBUS setup complete");
 }
 
+static void dumpBuf(uint8_t* buf) {
+	for (size_t i = 0; i < 8; i++) {
+		if (i > 0) Serial.print(" ");
+		if (buf[i] < 0x10) Serial.print("0");
+		Serial.print(buf[i], HEX);
+	}
+	Serial.println();
+}
+
 void KeyaBus_Receive()
 {
 	CAN_message_t KeyaBusReceiveData;
 	if (Keya_Bus.read(KeyaBusReceiveData))
 	{
 		// Heartbeat
+
 		if (KeyaBusReceiveData.id == 0x07000001)
 		{
 			lastKeyaHeatbeat = 0;
@@ -107,23 +115,20 @@ void KeyaBus_Receive()
 				Serial.println("Keya heartbeat detected! Enabling Keya CANBUS");
 				keyaDetected = true;
 			}
-			uint32_t time = millis();
+			keyaCurrentSteeringPositionUnScaled = ((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1 * (majorScale / steerSettings.steerSensorCounts));
+			keyaCurrentSteerAngleScaled = positionToDegrees(keyaCurrentSteeringPositionUnScaled);
+			Serial.println();
+			Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
+			Serial.print(keyaCurrentSteeringPositionUnScaled);
+			Serial.print(" keyaCurrentSteerAngleScaled: ");
+			Serial.print(keyaCurrentSteerAngleScaled);
+			Serial.print(" ");
 
-			keyaSteeringPositionUnScaled = (int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1;
 			keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
 			int16_t current = (int16_t)((int16_t)KeyaBusReceiveData.buf[4] << 8 | (int16_t)KeyaBusReceiveData.buf[5]);
-			//if (updateRawPositionOffset)
-			//{
-			//	keyaRawPositionOffset = keyaSteeringPosition;
-			//	updateRawPositionOffset = false;
-			//	steerSettings.wasOffset = 0;
-			//	helloSteerPosition = 0;
-			//	Serial.println();
-			//	Serial.print("Keya WAS Offset set to: ");
-			//	Serial.println(keyaRawPositionOffset);
-			//}
-			//keyaSteeringPosition = (float)(keyaSteeringPosition - keyaRawPositionOffset) / (steerSettings.steerSensorCounts / 10);
-			keyaSteerAngleScaled = positionToDegrees(keyaSteeringPositionUnScaled);
+
+
+			// do this with an "error margin" or checking the error flag instead?
 
 			int16_t error = abs(keyaCurrentActualSpeed - keyaCurrentSetSpeed);
 			static int16_t counter = 0;
@@ -146,12 +151,7 @@ void KeyaBus_Receive()
 				sensorReading = 0;
 				counter = 0;
 			}
-			Serial.println();
-			Serial.print(" keyaSteeringPositionUnScaled: ");
-			Serial.print(keyaSteeringPositionUnScaled);
-			Serial.print(" keyaSteerAngleScaled: ");
-			Serial.print(keyaSteerAngleScaled);
-			Serial.print(" ");
+
 			//Serial.print("\tCurrentActualSpeed: ");
 			//Serial.print(keyaCurrentActualSpeed);
 			//Serial.print("\tCurrent: ");
@@ -173,22 +173,22 @@ void KeyaBus_Receive()
 						// check if there's any motor diag/error data and parse it
 			if (KeyaBusReceiveData.buf[7] > 1 || KeyaBusReceiveData.buf[6] > 0)
 			{
-				// if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
-				// if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 1)) Serial.print("Over voltage\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 2)) Serial.print("Hardware protection\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 3)) Serial.print("E2PROM\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 4)) Serial.print("Under voltage\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 5)) Serial.print("N/A\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 6)) Serial.print("Over current\t");
+				if (bitRead(KeyaBusReceiveData.buf[7], 7)) Serial.print("Mode failure\t");
 
-				// if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
-				// if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 0)) Serial.print("Less phase\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 1)) Serial.print("Motor stall\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 2)) Serial.print("Reserved\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 3)) Serial.print("Hall failure\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 4)) Serial.print("Current sensing\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 5)) Serial.print("No RS232 Steer Command\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 6)) Serial.print("No CAN Steer Command\t");
+				if (bitRead(KeyaBusReceiveData.buf[6], 7)) Serial.print("Motor stalled\t");
 
 				Serial.println("Kill Autosteer");
 				steerSwitch = 1;
@@ -212,7 +212,7 @@ void SteerKeya(bool intendToSteer)
 			actualSpeed = 0;
 		}
 		else {
-			intendedSteerAngle = degreesToPosition(steerAngleSetPoint * -1);  // left is right in position-mode
+			intendedSteerAngle = steerAngleSetPoint * -1;  // left is right in position-mode
 
 			memcpy(KeyaBusSendData.buf, keyaPositionCommand, 6);
 			if (steerAngleSetPoint > 0) {  // left
@@ -228,13 +228,14 @@ void SteerKeya(bool intendToSteer)
 
 			Serial.print(" Steer Angle Setpoint: ");
 			Serial.print(steerAngleSetPoint);
+			intendedAngleConverted = degreesToPosition(intendedSteerAngle);
 			Serial.print(" intendedAngleConverted: ");
-			Serial.print(intendedSteerAngle);
+			Serial.print(intendedAngleConverted);
 			Serial.print(" / 0x");
-			Serial.print(intendedSteerAngle, HEX);
+			Serial.print(intendedAngleConverted, HEX);
 			Serial.println();
-			KeyaBusSendData.buf[4] = highByte(intendedSteerAngle);
-			KeyaBusSendData.buf[5] = lowByte(intendedSteerAngle);
+			KeyaBusSendData.buf[4] = highByte(intendedAngleConverted);
+			KeyaBusSendData.buf[5] = lowByte(intendedAngleConverted);
 			//Serial.print("Position: ");
 			sendKeyaCommand();
 

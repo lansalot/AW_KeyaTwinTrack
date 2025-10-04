@@ -93,14 +93,9 @@ bool guidanceStatusChanged = false;
 float gpsSpeed = 0;
 
 //steering variables
-float steerAngleActual = 0;
-float steerAngleSetPoint = 0; //the desired angle from AgOpen
+int16_t steerAngleActual = 0;
+int16_t steerAngleSetPoint = 0; //the desired angle from AgOpen
 
-//pwm variables
-int16_t pwmDrive = 0, pwmDisplay = 0;
-float pValue = 0;
-float errorAbs = 0;
-float highLowPerDeg = 0;
 
 //Steer switch button  ***********************************************************************************************************
 uint8_t currentState = 1, reading, previous = 0;
@@ -303,12 +298,12 @@ void autosteerLoop()
 
 			if (gpsSpeed > 1.2 && !steerConfig.InvertWAS)
 			{
-				wasDiff = (keyaSteerAngleScaled + keya_GPS_offset) - wheelAngleGPS;
+				wasDiff = (keyaCurrentSteerAngleScaled + keya_GPS_offset) - wheelAngleGPS;
 
 				keya_GPS_offset -= (wasDiff * (0.001));
 			}
 
-			steerAngleActual = keyaSteerAngleScaled + keya_GPS_offset;
+			steerAngleActual = keyaCurrentSteerAngleScaled + keya_GPS_offset;
 			/*
 			Serial.print(wasDiff);
 			Serial.print(",\t");
@@ -326,7 +321,7 @@ void autosteerLoop()
 		else
 		{
 			//DETERMINE ACTUAL STEERING POSITION
-			helloSteerPosition = keyaSteerAngleScaled;
+			helloSteerPosition = keyaCurrentSteerAngleScaled;
 		}
 
 		//WAS fault or over 25km, cut steering
@@ -353,7 +348,7 @@ void autosteerLoop()
 			}
 			else {
 				keyaIntendToSteer = true;
-				motorDrive();       //out to motors the pwm value
+				SteerKeya(keyaIntendToSteer);
 				// Autosteer Led goes GREEN if autosteering
 
 				digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
@@ -363,8 +358,6 @@ void autosteerLoop()
 		else
 		{
 			keyaIntendToSteer = false;
-			pwmDrive = 0; //turn off steering motor
-			motorDrive(); //out to motors the pwm value
 			pulseCount = 0;
 			// Autosteer Led goes back to RED when autosteering is stopped
 			digitalWrite(AUTOSTEER_STANDBY_LED, 1);
@@ -472,8 +465,7 @@ void ReceiveUdp()
 
 
 				// ======================================================================
-
-					int16_t sa = (int16_t)(keyaSteerAngleScaled * 100);
+					int16_t sa = (int16_t)(keyaCurrentSteeringPositionUnScaled * 100);
 
 				// ======================================================================
 
@@ -489,7 +481,7 @@ void ReceiveUdp()
 				PGN_253[10] = 8888 >> 8;
 
 				PGN_253[11] = switchByte;
-				PGN_253[12] = (uint8_t)pwmDisplay;
+				PGN_253[12] = 100;
 
 				//checksum
 				int16_t CK_A = 0;
