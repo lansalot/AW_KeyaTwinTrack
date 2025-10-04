@@ -179,8 +179,8 @@ void imuHandler()
 
 void readBNO()
 {
-	if (IMU_LastReadTime > 5000) {
-		sendHardwareMessage("No IMU for 5 seconds!!", 2);
+	if (IMU_LastReadTime > 60000) {
+		sendHardwareMessage("No IMU for 5 seconds!!", 30);
 		IMU_LastReadTime = 0;
 
 	}

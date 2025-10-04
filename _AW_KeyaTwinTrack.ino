@@ -55,13 +55,15 @@ FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
 int32_t intendedSteerAngle = 0;
 
 elapsedMillis lastKeyaHeatbeat;
-int16_t keyaRawPositionOffset = 0;
 bool updateRawPositionOffset = false;
 bool keyaDetected = false;
 bool keyaIntendToSteer;
-int16_t keyaSteeringPosition;
-int16_t keyaCurrentSetSpeed;
-int16_t keyaCurrentActualSpeed;
+int32_t keyaSteeringPositionUnScaled = 0;
+int32_t keyaCurrentActualSpeed = 0;
+int32_t keyaCurrentSetSpeed = 0; 
+float keyaSteerAngleScaled;
+
+
 float XTE;
 
 #define wheelBase 3.20
@@ -241,7 +243,7 @@ void setup()
 		}
 		if (useBNO08xI2C) break;
 	}
-	if (!useBNO08xI2C) sendHardwareMessage("No IMU", 10);
+	if (!useBNO08xI2C) sendHardwareMessage("No IMU", 30);
 	Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 

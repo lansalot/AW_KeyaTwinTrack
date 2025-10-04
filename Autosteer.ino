@@ -25,28 +25,12 @@ float outputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -
 /////////////////////////////////////////////
 
 // if not in eeprom, overwrite
-#define EEP_Ident 2400
-
-//   ***********  Motor drive connections  **************888
-//Connect ground only for cytron, Connect Ground and +5v for IBT2
-
-//Dir1 for Cytron Dir, Both L and R enable for IBT2
-#define DIR1_RL_ENABLE  32
-
-//PWM1 for Cytron PWM, Left PWM for IBT2
-#define PWM1_LPWM  2
-
-//Not Connected for Cytron, Right PWM for IBT2
-#define PWM2_RPWM  3
+#define EEP_Ident 2500 // Keya-specific for twin-track
 
 //--------------------------- Switch Input Pins ------------------------
 #define STEERSW_PIN 4
 #define WORKSW_PIN 34
 #define REMOTE_PIN 37
-
-//Define sensor pin for current or pressure sensor
-#define CURRENT_SENSOR_PIN A17
-#define PRESSURE_SENSOR_PIN A10
 
 #define CONST_180_DIVIDED_BY_PI 57.2957795130823
 
@@ -111,7 +95,6 @@ float gpsSpeed = 0;
 //steering variables
 float steerAngleActual = 0;
 float steerAngleSetPoint = 0; //the desired angle from AgOpen
-float steerAngleError = 0; //setpoint - actual
 
 //pwm variables
 int16_t pwmDrive = 0, pwmDisplay = 0;
@@ -153,62 +136,19 @@ struct Setup {
 	uint8_t IsUseY_Axis = 0;     //Set to 0 to use X Axis, 1 to use Y avis
 }; Setup steerConfig;               // 9 bytes
 
-void steerConfigInit()
-{
-	if (steerConfig.CytronDriver)
-	{
-		pinMode(PWM2_RPWM, OUTPUT);
-	}
-}
-
-void steerSettingsInit()
-{
-	// for PWM High to Low interpolator
-	highLowPerDeg = ((float)(steerSettings.highPWM - steerSettings.lowPWM)) / LOW_HIGH_DEGREES;
-}
 
 void autosteerSetup()
 {
-	//PWM rate settings. Set them both the same!!!!
-	/*  PWM Frequency ->
-		 490hz (default) = 0
-		 122hz = 1
-		 3921hz = 2
-	*/
-	if (PWM_Frequency == 0)
-	{
-		analogWriteFrequency(PWM1_LPWM, 490);
-		analogWriteFrequency(PWM2_RPWM, 490);
-	}
-	else if (PWM_Frequency == 1)
-	{
-		analogWriteFrequency(PWM1_LPWM, 122);
-		analogWriteFrequency(PWM2_RPWM, 122);
-	}
-	else if (PWM_Frequency == 2)
-	{
-		analogWriteFrequency(PWM1_LPWM, 3921);
-		analogWriteFrequency(PWM2_RPWM, 3921);
-	}
+
 
 	//keep pulled high and drag low to activate, noise free safe
 	pinMode(WORKSW_PIN, INPUT_PULLUP);
 	pinMode(STEERSW_PIN, INPUT_PULLUP);
 	pinMode(REMOTE_PIN, INPUT_PULLUP);
-	pinMode(DIR1_RL_ENABLE, OUTPUT);
-
-	// Disable digital inputs for analog input pins
-	pinMode(CURRENT_SENSOR_PIN, INPUT_DISABLE);
-	pinMode(PRESSURE_SENSOR_PIN, INPUT_DISABLE);
 
 	//set up communication
 	Wire1.end();
 	Wire1.begin();
-
-
-
-	//50Khz I2C
-	//TWBR = 144;   //Is this needed?
 
 	EEPROM.get(0, EEread);              // read identifier
 
@@ -225,9 +165,6 @@ void autosteerSetup()
 		EEPROM.get(40, steerConfig);
 		EEPROM.get(60, networkAddress);
 	}
-
-	steerSettingsInit();
-	steerConfigInit();
 
 	if (Autosteer_running)
 	{
@@ -338,39 +275,11 @@ void autosteerLoop()
 			previous = 0;
 		}
 
-		// Pressure sensor?
-		if (steerConfig.PressureSensor)
-		{
-			sensorSample = (float)analogRead(PRESSURE_SENSOR_PIN);
-			sensorSample *= 0.25;
-			sensorReading = sensorReading * 0.6 + sensorSample * 0.4;
-			if (sensorReading >= steerConfig.PulseCountMax)
-			{
-				steerSwitch = 1;
-				currentState = 1;
-				previous = 0;
-			}
-		}
-
 		// Current sensor?
 		if (steerConfig.CurrentSensor)
 		{
 			if (keyaDetected)
 			{
-				if (sensorReading >= steerConfig.PulseCountMax)
-				{
-					steerSwitch = 1;
-					currentState = 1;
-					previous = 0;
-				}
-			}
-			else
-			{
-				sensorSample = (float)analogRead(CURRENT_SENSOR_PIN);
-				sensorSample = (abs(775 - sensorSample)) * 0.5;
-				sensorReading = sensorReading * 0.7 + sensorSample * 0.3;
-				sensorReading = min(sensorReading, 255);
-
 				if (sensorReading >= steerConfig.PulseCountMax)
 				{
 					steerSwitch = 1;
@@ -389,20 +298,17 @@ void autosteerLoop()
 		// use Keya encoder
 		if (keyaDetected && !steerConfig.SingleInputWAS)
 		{
-			float keyaSteerAngleActual;
 			static float keya_GPS_offset = 0;
 			float wasDiff;
 
-			keyaSteerAngleActual = (float)(keyaSteeringPosition) / steerSettings.steerSensorCounts;
-
 			if (gpsSpeed > 1.2 && !steerConfig.InvertWAS)
 			{
-				wasDiff = (keyaSteerAngleActual + keya_GPS_offset) - wheelAngleGPS;
+				wasDiff = (keyaSteerAngleScaled + keya_GPS_offset) - wheelAngleGPS;
 
 				keya_GPS_offset -= (wasDiff * (0.001));
 			}
 
-			steerAngleActual = keyaSteerAngleActual + keya_GPS_offset;
+			steerAngleActual = keyaSteerAngleScaled + keya_GPS_offset;
 			/*
 			Serial.print(wasDiff);
 			Serial.print(",\t");
@@ -420,20 +326,8 @@ void autosteerLoop()
 		else
 		{
 			//DETERMINE ACTUAL STEERING POSITION
-
-			if (steerConfig.InvertWAS)
-			{
-				steerAngleActual = (float)(keyaSteeringPosition) / -steerSettings.steerSensorCounts;
-			}
-			else
-			{
-				steerAngleActual = (float)(keyaSteeringPosition) / steerSettings.steerSensorCounts;
-			}
-			helloSteerPosition = steerAngleActual;
+			helloSteerPosition = keyaSteerAngleScaled;
 		}
-
-		//Ackerman fix
-		if (steerAngleActual < 0) steerAngleActual = (steerAngleActual * steerSettings.AckermanFix);
 
 		//WAS fault or over 25km, cut steering
 		if ((steerAngleActual < inputWAS[0]) || (steerAngleActual > inputWAS[20]) || gpsSpeed > 25)
@@ -450,51 +344,24 @@ void autosteerLoop()
 
 		if (watchdogTimer < WATCHDOG_THRESHOLD)
 		{
-			//Enable H Bridge for IBT2, hyd aux, etc for cytron
-			if (steerConfig.CytronDriver)
-			{
-				if (steerConfig.IsRelayActiveHigh)
-				{
-					digitalWrite(PWM2_RPWM, 0);
-				}
-				else
-				{
-					digitalWrite(PWM2_RPWM, 1);
-				}
-			}
-			else digitalWrite(DIR1_RL_ENABLE, 1);
-
-			steerAngleError = steerAngleActual - steerAngleSetPoint;   //calculate the steering error
 			//if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
 
 			//Don't turn wheels if speed less than 0.3km/hr
-			if (gpsSpeed < 0.2) steerAngleError = 0;
+			if (gpsSpeed < 0.0) { 
+				keyaIntendToSteer = false;
+				Serial.println("Stopping as not moving!");
+			}
+			else {
+				keyaIntendToSteer = true;
+				motorDrive();       //out to motors the pwm value
+				// Autosteer Led goes GREEN if autosteering
 
-			keyaIntendToSteer = true;
-			calcSteeringPID();  //do the pid
-			motorDrive();       //out to motors the pwm value
-			// Autosteer Led goes GREEN if autosteering
-
-			digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
-			digitalWrite(AUTOSTEER_STANDBY_LED, 0);
+				digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
+				digitalWrite(AUTOSTEER_STANDBY_LED, 0);
+			}
 		}
 		else
 		{
-			//we've lost the comm to AgOpenGPS, or just stop request
-			//Disable H Bridge for IBT2, hyd aux, etc for cytron
-			if (steerConfig.CytronDriver)
-			{
-				if (steerConfig.IsRelayActiveHigh)
-				{
-					digitalWrite(PWM2_RPWM, 1);
-				}
-				else
-				{
-					digitalWrite(PWM2_RPWM, 0);
-				}
-			}
-			else digitalWrite(DIR1_RL_ENABLE, 0); //IBT2
-
 			keyaIntendToSteer = false;
 			pwmDrive = 0; //turn off steering motor
 			motorDrive(); //out to motors the pwm value
@@ -578,7 +445,7 @@ void ReceiveUdp()
 				//Bit 8,9    set point steer angle * 100 is sent
 				steerAngleSetPoint = ((float)(autoSteerUdpData[8] | ((int8_t)autoSteerUdpData[9]) << 8)) * 0.01; //high low bytes
 
-        XTE = autoSteerUdpData[9];
+				XTE = autoSteerUdpData[9];
 				//Serial.println(gpsSpeed);
 
 				if ((bitRead(guidanceStatus, 0) == 0) /* || (gpsSpeed < 0.1)*/ || (steerSwitch == 1))
@@ -602,7 +469,13 @@ void ReceiveUdp()
 				//----------------------------------------------------------------------------
 				//Serial Send to agopenGPS
 
-				int16_t sa = (int16_t)(steerAngleActual * 100);
+
+
+				// ======================================================================
+
+					int16_t sa = (int16_t)(keyaSteerAngleScaled * 100);
+
+				// ======================================================================
 
 				PGN_253[5] = (uint8_t)sa;
 				PGN_253[6] = sa >> 8;
@@ -689,8 +562,6 @@ void ReceiveUdp()
 				//store in EEPROM
 				EEPROM.put(10, steerSettings);
 
-				// Re-Init steer settings
-				steerSettingsInit();
 			}
 
 			else if (autoSteerUdpData[3] == 0xFB)  //251 FB - SteerConfig
@@ -723,15 +594,12 @@ void ReceiveUdp()
 
 				EEPROM.put(40, steerConfig);
 
-				// Re-Init
-				steerConfigInit();
-
 			}//end FB
 			else if (autoSteerUdpData[3] == 233) // XTE
 			{
-        XTE = ((float)(autoSteerUdpData[9] | ((int8_t)autoSteerUdpData[8]) << 8)); //high low bytes
-        Serial.println("!");
-      }
+				XTE = ((float)(autoSteerUdpData[9] | ((int8_t)autoSteerUdpData[8]) << 8)); //high low bytes
+				Serial.println("!");
+			}
 			else if (autoSteerUdpData[3] == 200) // Hello from AgIO
 			{
 				if (Autosteer_running)

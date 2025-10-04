@@ -195,7 +195,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties arduino.upload.port="usb:80000/3/0/1" config.Debug.customdebug_teensy41_debugger_type="universal" vm.preproc.lib-search.lib-in-lib="none" vm.preproc.lib-search.lib-in-sketch="root" />
+      <UserProperties arduino.upload.port="usb:80000/3/0/2" config.Debug.customdebug_teensy41_debugger_type="universal" vm.preproc.lib-search.lib-in-lib="none" vm.preproc.lib-search.lib-in-sketch="root" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>
