@@ -36,6 +36,8 @@ uint64_t KeyaID = 0x06000001; // 0x01 is default ID
 CAN_message_t KeyaBusSendData;
 int16_t intendedAngleConverted;
 
+bool debugKeya = true;
+
 float majorScale = 50.0f;
 
 // int16_t degreesToPosition(float degrees) {
@@ -117,16 +119,17 @@ void KeyaBus_Receive()
 			}
 			keyaCurrentSteeringPositionUnScaled = ((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1 * (majorScale / steerSettings.steerSensorCounts));
 			keyaCurrentSteerAngleScaled = positionToDegrees(keyaCurrentSteeringPositionUnScaled);
-			Serial.println();
-			Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
-			Serial.print(keyaCurrentSteeringPositionUnScaled);
-			Serial.print(" keyaCurrentSteerAngleScaled: ");
-			Serial.print(keyaCurrentSteerAngleScaled);
-			Serial.print(" ");
+			if (debugKeya) {
+				Serial.println();
+				Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
+				Serial.print(keyaCurrentSteeringPositionUnScaled);
+				Serial.print(" keyaCurrentSteerAngleScaled: ");
+				Serial.print(keyaCurrentSteerAngleScaled);
+				Serial.print(" ");
+			}
 
 			keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
 			int16_t current = (int16_t)((int16_t)KeyaBusReceiveData.buf[4] << 8 | (int16_t)KeyaBusReceiveData.buf[5]);
-
 
 			// do this with an "error margin" or checking the error flag instead?
 
@@ -225,15 +228,16 @@ void SteerKeya(bool intendToSteer)
 			}
 
 			// set position first, then speed. [6-7] above are 00 or FF depending on direction
-
-			Serial.print(" Steer Angle Setpoint: ");
-			Serial.print(steerAngleSetPoint);
 			intendedAngleConverted = degreesToPosition(intendedSteerAngle);
-			Serial.print(" intendedAngleConverted: ");
-			Serial.print(intendedAngleConverted);
-			Serial.print(" / 0x");
-			Serial.print(intendedAngleConverted, HEX);
-			Serial.println();
+			if (debugKeya) {
+				Serial.print(" Steer Angle Setpoint: ");
+				Serial.print(steerAngleSetPoint);
+				Serial.print(" intendedAngleConverted: ");
+				Serial.print(intendedAngleConverted);
+				Serial.print(" / 0x");
+				Serial.print(intendedAngleConverted, HEX);
+				Serial.println();
+			}
 			KeyaBusSendData.buf[4] = highByte(intendedAngleConverted);
 			KeyaBusSendData.buf[5] = lowByte(intendedAngleConverted);
 			//Serial.print("Position: ");

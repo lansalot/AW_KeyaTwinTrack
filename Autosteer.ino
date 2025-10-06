@@ -341,16 +341,16 @@ void autosteerLoop()
 		{
 			//if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
 
-			//Don't turn wheels if speed less than 0.3km/hr
-			if (gpsSpeed < 0.0) { 
+			//Don't turn wheels if speed less than 1km/hr (build in a bit of error, twin-track could be very dangerous!)
+			if (gpsSpeed < 1) { 
 				keyaIntendToSteer = false;
 				Serial.println("Stopping as not moving!");
+				sendHardwareMessage("Not moving, so not steering!",5);
 			}
 			else {
 				keyaIntendToSteer = true;
 				SteerKeya(keyaIntendToSteer);
 				// Autosteer Led goes GREEN if autosteering
-
 				digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
 				digitalWrite(AUTOSTEER_STANDBY_LED, 0);
 			}
