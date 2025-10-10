@@ -1,7 +1,7 @@
-
+﻿
 uint8_t keyaPositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
 
-uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01 };
+uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00 };
 uint8_t keyaDisableResponse[] = { 0x60, 0x0C, 0x20, 0x00 };
 
 uint8_t keyaEnableCommand[] = { 0x23, 0x0D, 0x20, 0x01, 0x01, 0x90, 0x00, 0x00 };
@@ -210,7 +210,7 @@ void SteerKeya(bool intendToSteer)
 	{
 		int16_t actualSpeed;
 		if (!intendToSteer) {
-			memcpy(KeyaBusSendData.buf, keyaDisableCommand, 4);
+			memcpy(KeyaBusSendData.buf, keyaDisableCommand, 8);
 			sendKeyaCommand();
 			actualSpeed = 0;
 		}

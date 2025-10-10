@@ -17,6 +17,7 @@
 	 3921hz = 2
 */
 #define PWM_Frequency 1
+static int16_t lastSteerAngleSetPoint = 0;
 
 //WAS Calabration
 float inputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -10.0, -5.0, 0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0 };  //Input WAS do not adjust
@@ -349,7 +350,14 @@ void autosteerLoop()
 			}
 			else {
 				keyaIntendToSteer = true;
-				SteerKeya(keyaIntendToSteer);
+				// Dead-band implementation to reduce unnecessary CAN bus traffic
+				const int16_t deadBand = 10; // 0.1 degrees
+				
+				if (abs(steerAngleSetPoint - lastSteerAngleSetPoint) > deadBand) {
+					lastSteerAngleSetPoint = steerAngleSetPoint;
+					SteerKeya(keyaIntendToSteer);
+				}
+				// Otherwise, don't send new command to reduce CAN bus traffic
 				// Autosteer Led goes GREEN if autosteering
 				digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
 				digitalWrite(AUTOSTEER_STANDBY_LED, 0);

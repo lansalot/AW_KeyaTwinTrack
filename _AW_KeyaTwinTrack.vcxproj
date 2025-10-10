@@ -127,6 +127,10 @@
       <DeploymentContent>true</DeploymentContent>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="OVERVIEW.md" />
+    <None Include="READM.md" />
+  </ItemGroup>
   <PropertyGroup>
     <DebuggerFlavor>VisualMicroDebugger</DebuggerFlavor>
   </PropertyGroup>
