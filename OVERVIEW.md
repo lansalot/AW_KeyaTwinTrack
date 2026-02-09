@@ -6,7 +6,7 @@ The AW KeyaTwinTrack project is an advanced agricultural guidance and autosteer 
 
 ## System Architecture
 
-```
+```mermaid
 graph TB
     A[Main Application] --> B[NMEA Parsing]
     A --> C[IMU Processing]
