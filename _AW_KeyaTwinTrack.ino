@@ -143,6 +143,12 @@ float roll = 0;
 float pitch = 0;
 float yaw = 0;
 
+#include "EthernetUpdater.h"
+
+#define ModuleID 0
+#define InoType 0
+EthernetUpdater updater(ModuleID, InoType);
+
 const uint8_t WAS_SENSOR_PIN = A15;
 // Setup procedure ------------------------
 void setup()
@@ -243,11 +249,14 @@ void setup()
 		if (useBNO08xI2C) break;
 	}
 	if (!useBNO08xI2C) sendHardwareMessage("No IMU", 30);
+	Serial.println("Initialising ethernet updater");
+	updater.begin();
 	Serial.println("\r\nEnd setup, waiting for GPS...\r\n");
 }
 
 void loop()
 {
+	updater.poll();
 	// Read incoming nmea from GPS
 	if (SerialGPS->available())
 	{
