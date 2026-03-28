@@ -1,8 +1,8 @@
 
 // Serial Ports
 #define SerialAOG Serial               // AgIO USB conection
-#define SerialRTK Serial3 // aio board               //RTK radio
-HardwareSerial* SerialGPS = &Serial7;   //Main postion receiver (GGA)
+#define SerialRTK Serial7 // aio board               //RTK radio (3 for AIO)
+HardwareSerial* SerialGPS = &Serial3;   //Main postion receiver (GGA) (7 for AIO)
 HardwareSerial* SerialGPS2 = &Serial2; // Dual heading receiver
 HardwareSerial* SerialIMU = &Serial5;   //IMU
 
@@ -155,7 +155,7 @@ void setup()
 {
 	delay(500);               // Small delay so serial can monitor start up
 	set_arm_clock(450000000); // Set CPU speed to 150mhz
-	Serial.println("\r\n** AIO v4 Firmware 12.09.2025 (Inc Keya CANBUS & HPR Dual **)\r\n");
+	Serial.println("\r\n** Andy's TwinTrack experiments **\r\n");
 	Serial.print("CPU speed set to: ");
 	Serial.println(F_CPU_ACTUAL);
 
@@ -257,6 +257,16 @@ void setup()
 void loop()
 {
 	updater.poll();
+	if (lastKeyaHeatbeat > 1000)
+	{
+		sendHardwareMessage("Keya CANBUS Lost", 3);
+		keyaDetected = false;
+		intendedSteerAngle = 0;
+		keyaCurrentSteeringPositionUnScaled = 0;
+		keyaCurrentSteerAngleScaled = 0;
+		keyaCurrentActualSpeed = 0;
+		keyaCurrentSetSpeed = 0; 
+	}
 	// Read incoming nmea from GPS
 	if (SerialGPS->available())
 	{

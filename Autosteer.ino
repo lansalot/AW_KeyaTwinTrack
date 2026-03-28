@@ -39,7 +39,6 @@ float outputWAS[] = { -50.00, -45.0, -40.0, -35.0, -30.0, -25.0, -20.0, -15.0, -
 #include <EEPROM.h>
 
 #include <IPAddress.h>
-
 // ethernet
 #include <NativeEthernet.h>
 #include <NativeEthernetUdp.h>
@@ -343,21 +342,20 @@ void autosteerLoop()
 			//if (abs(steerAngleError)< steerSettings.lowPWM) steerAngleError = 0;
 
 			//Don't turn wheels if speed less than 1km/hr (build in a bit of error, twin-track could be very dangerous!)
-			if (gpsSpeed < 1) { 
+			if (gpsSpeed < -1) {  // andy undo this hack!!!
 				keyaIntendToSteer = false;
-				Serial.println("Stopping as not moving!");
-				sendHardwareMessage("Not moving, so not steering!",5);
+				sendHardwareMessage("Not moving, so not steering!", 2);
+				SteerKeya(false);
 			}
 			else {
 				keyaIntendToSteer = true;
-				// Dead-band implementation to reduce unnecessary CAN bus traffic
-				const int16_t deadBand = 10; // 0.1 degrees
-				
+				//Serial.print(millis());
+				//Serial.println(" lastSteerAngleSetPoint: " + String(lastSteerAngleSetPoint) + ", steerAngleSetPoint: " + String(steerAngleSetPoint));
+				const int16_t deadBand = 1; // degrees
 				if (abs(steerAngleSetPoint - lastSteerAngleSetPoint) > deadBand) {
 					lastSteerAngleSetPoint = steerAngleSetPoint;
-					SteerKeya(keyaIntendToSteer);
+					SteerKeya(true);
 				}
-				// Otherwise, don't send new command to reduce CAN bus traffic
 				// Autosteer Led goes GREEN if autosteering
 				digitalWrite(AUTOSTEER_ACTIVE_LED, 1);
 				digitalWrite(AUTOSTEER_STANDBY_LED, 0);
@@ -366,7 +364,7 @@ void autosteerLoop()
 		else
 		{
 			keyaIntendToSteer = false;
-			pulseCount = 0;
+			SteerKeya(false);
 			// Autosteer Led goes back to RED when autosteering is stopped
 			digitalWrite(AUTOSTEER_STANDBY_LED, 1);
 			digitalWrite(AUTOSTEER_ACTIVE_LED, 0);
@@ -449,7 +447,7 @@ void ReceiveUdp()
 				XTE = autoSteerUdpData[9];
 				//Serial.println(gpsSpeed);
 
-				if ((bitRead(guidanceStatus, 0) == 0) /* || (gpsSpeed < 0.1)*/ || (steerSwitch == 1))
+				if ((bitRead(guidanceStatus, 0) == 0) /* || (gpsSpeed < 0.1)*/ || (steerSwitch == 1)) // AW HACK
 				{
 					watchdogTimer = WATCHDOG_FORCE_VALUE; //turn off steering motor
 				}
@@ -473,7 +471,7 @@ void ReceiveUdp()
 
 
 				// ======================================================================
-					int16_t sa = (int16_t)(keyaCurrentSteeringPositionUnScaled * 100);
+				int16_t sa = (int16_t)(keyaCurrentSteeringPositionUnScaled * 100);
 
 				// ======================================================================
 
@@ -554,7 +552,7 @@ void ReceiveUdp()
 					updateRawPositionOffset = true;
 					steerSettings.wasOffset = 0;
 				}
-				steerSettings.AckermanFix = (float)autoSteerUdpData[12] * 0.01;
+				steerSettings.AckermanFix = (float)autoSteerUdpData[12];
 
 				//crc
 				//autoSteerUdpData[13];

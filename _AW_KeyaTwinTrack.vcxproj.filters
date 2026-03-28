@@ -58,5 +58,6 @@
   <ItemGroup>
     <None Include="READM.md" />
     <None Include="OVERVIEW.md" />
+    <None Include="CANPacking.md" />
   </ItemGroup>
 </Project>

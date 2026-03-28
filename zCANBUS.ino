@@ -1,10 +1,12 @@
-﻿
+﻿#ifndef zCANBUS_H
+#define zCANBUS_H
 uint8_t keyaPositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
 
 uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00 };
 uint8_t keyaDisableResponse[] = { 0x60, 0x0C, 0x20, 0x00 };
 
-uint8_t keyaEnableCommand[] = { 0x23, 0x0D, 0x20, 0x01, 0x01, 0x90, 0x00, 0x00 };
+//uint8_t keyaEnableCommand[] = { 0x23, 0x0D, 0x20, 0x01, 0x01, 0x90, 0x00, 0x00 };
+uint8_t keyaEnableCommand[] = { 0x23, 0x0D, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00 };
 uint8_t keyaEnableResponse[] = { 0x60, 0x0D, 0x20, 0x00 };
 
 uint8_t keyaSpeedCommand[] = { 0x23, 0x00, 0x20, 0x01 };
@@ -92,13 +94,20 @@ void CAN_Setup()
 	Serial.println("Keya CANBUS setup complete");
 }
 
+static inline void packKeya32(int32_t value, uint8_t* buf)
+{
+	buf[4] = (uint8_t)((value >> 8) & 0xFF);   // DATA_L(H)
+	buf[5] = (uint8_t)(value & 0xFF);          // DATA_L(L)
+	buf[6] = (uint8_t)((value >> 24) & 0xFF);  // DATA_H(H)
+	buf[7] = (uint8_t)((value >> 16) & 0xFF);  // DATA_H(L)
+}
+
 static void dumpBuf(uint8_t* buf) {
 	for (size_t i = 0; i < 8; i++) {
 		if (i > 0) Serial.print(" ");
 		if (buf[i] < 0x10) Serial.print("0");
 		Serial.print(buf[i], HEX);
 	}
-	Serial.println();
 }
 
 void KeyaBus_Receive()
@@ -209,49 +218,53 @@ void SteerKeya(bool intendToSteer)
 	if (keyaDetected)
 	{
 		int16_t actualSpeed;
+		uint16_t speedToSet = (uint16_t)(((uint32_t)steerSettings.AckermanFix * 10000u + 127u) / 200u); // rounded
+		//Serial.print("AckermanFix: ");
+		//Serial.print(steerSettings.AckermanFix);
+		//Serial.println(" Setting speed to " + String(speedToSet));
+
 		if (!intendToSteer) {
 			memcpy(KeyaBusSendData.buf, keyaDisableCommand, 8);
 			sendKeyaCommand();
 			actualSpeed = 0;
 		}
 		else {
+			// Speed
+			Serial.print("Sent speed: ");
+			memcpy(KeyaBusSendData.buf, keyaSpeedCommand, 4);
+			packKeya32((int32_t)speedToSet, KeyaBusSendData.buf);
+			dumpBuf(KeyaBusSendData.buf);
+			sendKeyaCommand();
+
 			intendedSteerAngle = steerAngleSetPoint * -1;  // left is right in position-mode
-
-			memcpy(KeyaBusSendData.buf, keyaPositionCommand, 6);
-			if (steerAngleSetPoint > 0) {  // left
-				KeyaBusSendData.buf[6] = 0xFF;
-				KeyaBusSendData.buf[7] = 0xFF;
-			}
-			else {
-				KeyaBusSendData.buf[6] = 0x00;
-				KeyaBusSendData.buf[7] = 0x00;
-			}
-
-			// set position first, then speed. [6-7] above are 00 or FF depending on direction
 			intendedAngleConverted = degreesToPosition(intendedSteerAngle);
 			if (debugKeya) {
-				Serial.print(" Steer Angle Setpoint: ");
-				Serial.print(steerAngleSetPoint);
-				Serial.print(" intendedAngleConverted: ");
-				Serial.print(intendedAngleConverted);
-				Serial.print(" / 0x");
-				Serial.print(intendedAngleConverted, HEX);
-				Serial.println();
+				//Serial.print("Steer Angle Setpoint: ");
+				//Serial.print(steerAngleSetPoint);
+				//Serial.print(" intendedAngleConverted: ");
+				//Serial.print(intendedAngleConverted);
+				//Serial.print(" / 0x");
+				//Serial.print((uint16_t)intendedAngleConverted, HEX);
+				//Serial.print(" ");
 			}
-			KeyaBusSendData.buf[4] = highByte(intendedAngleConverted);
-			KeyaBusSendData.buf[5] = lowByte(intendedAngleConverted);
-			//Serial.print("Position: ");
+			delay(100);
+
+			// Position
+			Serial.print(" Sent position: ");
+			memcpy(KeyaBusSendData.buf, keyaPositionCommand, 4);
+			packKeya32((int32_t)intendedAngleConverted, KeyaBusSendData.buf);
+			dumpBuf(KeyaBusSendData.buf);
 			sendKeyaCommand();
 
-			memcpy(KeyaBusSendData.buf, keyaSpeedCommand, 6);
-			KeyaBusSendData.buf[4] = 0x00;  // hacked speed in just now
-			KeyaBusSendData.buf[5] = 0xff;
-			//Serial.print("Speed: ");
-			sendKeyaCommand();
 
-			//Serial.print("Enable: ");
+			// and enable
 			memcpy(KeyaBusSendData.buf, keyaEnableCommand, 8);
+			Serial.print(" Enable: ");
+			dumpBuf(KeyaBusSendData.buf);
 			sendKeyaCommand();
+
+
+			Serial.println();
 		}
 	}
 }
@@ -267,3 +280,5 @@ void sendKeyaCommand() {
 	//}
 	//Serial.println();
 }
+
+#endif
