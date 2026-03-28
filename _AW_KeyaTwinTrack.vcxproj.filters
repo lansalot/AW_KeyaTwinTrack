@@ -31,14 +31,33 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="_Utils.ino" />
+    <ClCompile Include="EthernetUpdater.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FlashTxx.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FXUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\._AW_KeyaTwinTrack.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EthernetUpdater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FlashTxx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FXUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="READM.md" />
     <None Include="OVERVIEW.md" />
+    <None Include="CANPacking.md" />
   </ItemGroup>
 </Project>
