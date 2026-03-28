@@ -40,22 +40,7 @@ int16_t intendedAngleConverted;
 
 bool debugKeya = true;
 
-float majorScale = 50.0f;
-
-// int16_t degreesToPosition(float degrees) {
-// 	const float UNITS_PER_REV = 10000.0f;   // 0x2710
-// 	const float DEGREES_PER_REV = 360.0f;
-
-// 	float units = (degrees / DEGREES_PER_REV) * UNITS_PER_REV;
-
-// 	// Simple rounding
-// 	if (units >= 0) {
-// 		return (int16_t)(units + 0.5f);
-// 	}
-// 	else {
-// 		return (int16_t)(units - 0.5f);
-// 	}
-// }
+float majorScale = 10.0f;
 
 int16_t degreesToPosition(float degrees) {
 	const float UNITS_PER_REV = 10000.0f;   // 0x2710
@@ -74,7 +59,7 @@ float positionToDegrees(int16_t position) {
 	const float UNITS_PER_REV = 10000.0f;
 	const float DEGREES_PER_REV = 360.0f;
 
-	float degrees = (position * DEGREES_PER_REV) / (UNITS_PER_REV * (steerSettings.steerSensorCounts / majorScale));
+	float degrees = (position * DEGREES_PER_REV) / (UNITS_PER_REV * ( steerSettings.steerSensorCounts / majorScale));
 
 	return degrees;
 }
@@ -129,12 +114,12 @@ void KeyaBus_Receive()
 			keyaCurrentSteeringPositionUnScaled = ((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1 * (majorScale / steerSettings.steerSensorCounts));
 			keyaCurrentSteerAngleScaled = positionToDegrees(keyaCurrentSteeringPositionUnScaled);
 			if (debugKeya) {
-				Serial.println();
-				Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
-				Serial.print(keyaCurrentSteeringPositionUnScaled);
-				Serial.print(" keyaCurrentSteerAngleScaled: ");
-				Serial.print(keyaCurrentSteerAngleScaled);
-				Serial.print(" ");
+				//Serial.println();
+				//Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
+				//Serial.print(keyaCurrentSteeringPositionUnScaled);
+				//Serial.print(" keyaCurrentSteerAngleScaled: ");
+				//Serial.print(keyaCurrentSteerAngleScaled);
+				//Serial.print(" ");
 			}
 
 			keyaCurrentActualSpeed = (int16_t)((int16_t)KeyaBusReceiveData.buf[2] << 8 | (int16_t)KeyaBusReceiveData.buf[3]);
