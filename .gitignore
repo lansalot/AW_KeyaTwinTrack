@@ -7,3 +7,6 @@
 build
 /_AW_KeyaTwinTrack.ino.TEENSY41.hex
 /.vs/CopilotSnapshots/77C9ECE94E83E444B1E6349B38C7A638
+Flasher/Source/.vs
+Flasher/Source/obj
+Flasher/Source/bin
