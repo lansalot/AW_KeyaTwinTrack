@@ -471,7 +471,7 @@ void ReceiveUdp()
 
 
 				// ======================================================================
-				int16_t sa = (int16_t)(keyaCurrentSteeringPositionUnScaled * 100);
+				int16_t sa = (int16_t)(keyaCurrentSteeringPositionScaled * 100);
 
 				// ======================================================================
 
@@ -547,10 +547,11 @@ void ReceiveUdp()
 				steerSettings.wasOffset = (autoSteerUdpData[10]);  //read was zero offset Lo
 
 				steerSettings.wasOffset |= (autoSteerUdpData[11] << 8);  //read was zero offset Hi
-				if (steerSettings.wasOffset != 0)
+				Serial.println("was offset: " + String(steerSettings.wasOffset) + " last: " + String(lastWASOffset));	
+				if (steerSettings.wasOffset != lastWASOffset)
 				{
+					lastWASOffset = steerSettings.wasOffset;
 					updateRawPositionOffset = true;
-					steerSettings.wasOffset = 0;
 				}
 				steerSettings.AckermanFix = (float)autoSteerUdpData[12];
 

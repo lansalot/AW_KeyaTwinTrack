@@ -1,6 +1,7 @@
 ﻿#ifndef zCANBUS_H
 #define zCANBUS_H
-uint8_t keyaPositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
+uint8_t keyaAbsolutePositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
+uint8_t keyaResetPosition[] = { 0x23, 0x0c, 0x20, 0x09, 0x00, 0x00, 0x00, 0x00 };
 
 uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00 };
 uint8_t keyaDisableResponse[] = { 0x60, 0x0C, 0x20, 0x00 };
@@ -73,7 +74,7 @@ void CAN_Setup()
 	KeyaBusSendData.id = KeyaID;
 	KeyaBusSendData.flags.extended = true;
 	KeyaBusSendData.len = 8;
-	memcpy(KeyaBusSendData.buf, keyaPositionMode, 8);
+	memcpy(KeyaBusSendData.buf, keyaAbsolutePositionMode, 8);
 	Keya_Bus.write(KeyaBusSendData);
 	Serial.println("Setting position mode (RAM)");
 	Serial.println("Keya CANBUS setup complete");
@@ -111,8 +112,8 @@ void KeyaBus_Receive()
 				Serial.println("Keya heartbeat detected! Enabling Keya CANBUS");
 				keyaDetected = true;
 			}
-			keyaCurrentSteeringPositionUnScaled = ((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1 * (majorScale / steerSettings.steerSensorCounts));
-			keyaCurrentSteerAngleScaled = positionToDegrees(keyaCurrentSteeringPositionUnScaled);
+			keyaCurrentSteeringPositionScaled = ((int16_t)((int16_t)KeyaBusReceiveData.buf[0] << 8 | (int16_t)KeyaBusReceiveData.buf[1]) * -1 * (majorScale / steerSettings.steerSensorCounts));
+			keyaCurrentSteerAngleScaled = positionToDegrees(keyaCurrentSteeringPositionScaled);
 			if (debugKeya) {
 				//Serial.println();
 				//Serial.print(" keyaCurrentSteeringPositionUnScaled: ");
@@ -207,7 +208,14 @@ void SteerKeya(bool intendToSteer)
 		//Serial.print("AckermanFix: ");
 		//Serial.print(steerSettings.AckermanFix);
 		//Serial.println(" Setting speed to " + String(speedToSet));
-
+		if (updateRawPositionOffset) {
+			Serial.println("Updating Keya Center Offset to current position");
+			memcpy(KeyaBusSendData.buf, keyaResetPosition, 8);
+			sendKeyaCommand();
+			sendHardwareMessage("Updated Keya Center Offset to current position", 2);
+			updateRawPositionOffset = false;
+			return;
+		}
 		if (!intendToSteer) {
 			memcpy(KeyaBusSendData.buf, keyaDisableCommand, 8);
 			sendKeyaCommand();
@@ -222,7 +230,7 @@ void SteerKeya(bool intendToSteer)
 			sendKeyaCommand();
 
 			intendedSteerAngle = steerAngleSetPoint * -1;  // left is right in position-mode
-			intendedAngleConverted = degreesToPosition(intendedSteerAngle);
+			intendedAngleConverted = degreesToPosition(intendedSteerAngle + KeyaCenterOffset);
 			if (debugKeya) {
 				//Serial.print("Steer Angle Setpoint: ");
 				//Serial.print(steerAngleSetPoint);
@@ -257,13 +265,6 @@ void SteerKeya(bool intendToSteer)
 // only issue one query at a time, wait for respone
 void sendKeyaCommand() {
 	Keya_Bus.write(KeyaBusSendData);
-
-	//for (uint8_t i = 0; i < KeyaBusSendData.len; i++) {
-	//	if (KeyaBusSendData.buf[i] < 0x10) Serial.print("0");  // pad single hex digits
-	//	Serial.print(KeyaBusSendData.buf[i], HEX);
-	//	Serial.print(" ");
-	//}
-	//Serial.println();
 }
 
 #endif
