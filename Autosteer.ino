@@ -351,7 +351,7 @@ void autosteerLoop()
 				keyaIntendToSteer = true;
 				//Serial.print(millis());
 				//Serial.println(" lastSteerAngleSetPoint: " + String(lastSteerAngleSetPoint) + ", steerAngleSetPoint: " + String(steerAngleSetPoint));
-				const int16_t deadBand = 1; // degrees
+				const int16_t deadBand = 0; // degrees
 				if (abs(steerAngleSetPoint - lastSteerAngleSetPoint) > deadBand) {
 					lastSteerAngleSetPoint = steerAngleSetPoint;
 					SteerKeya(true);

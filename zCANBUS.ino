@@ -228,8 +228,13 @@ void SteerKeya(bool intendToSteer)
 			packKeya32((int32_t)speedToSet, KeyaBusSendData.buf);
 			dumpBuf(KeyaBusSendData.buf);
 			sendKeyaCommand();
-
-			intendedSteerAngle = steerAngleSetPoint * -1;  // left is right in position-mode
+			// 500
+			//int16_t slack = ((2 / steerSettings.steerSensorCounts) * 100);
+			int16_t slack = ((2 / steerSettings.AckermanFix) * 100);
+			if (intendedSteerAngle < 0) {
+				slack *= -1;
+			}
+			intendedSteerAngle = (steerAngleSetPoint * -1) + slack;  // left is right in position-mode
 			intendedAngleConverted = degreesToPosition(intendedSteerAngle + KeyaCenterOffset);
 			if (debugKeya) {
 				//Serial.print("Steer Angle Setpoint: ");
@@ -258,6 +263,8 @@ void SteerKeya(bool intendToSteer)
 
 
 			Serial.println();
+			Serial.println("intended: " + String(intendedSteerAngle) + " slack: " + String(slack));
+
 		}
 	}
 }
