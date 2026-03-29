@@ -1,7 +1,6 @@
 ﻿#ifndef zCANBUS_H
 #define zCANBUS_H
 uint8_t keyaAbsolutePositionMode[] = { 0x03, 0x0D, 0x20, 0x31, 0x00, 0x00, 0x00, 0x00 };
-uint8_t keyaRelativePositionMode[] = { 0x03, 0x0D, 0x20, 0x41, 0x00, 0x00, 0x00, 0x00 };
 uint8_t keyaResetPosition[] = { 0x23, 0x0c, 0x20, 0x09, 0x00, 0x00, 0x00, 0x00 };
 
 uint8_t keyaDisableCommand[] = { 0x23, 0x0C, 0x20, 0x01, 0x00, 0x00, 0x00, 0x00 };
@@ -76,7 +75,6 @@ void CAN_Setup()
 	KeyaBusSendData.flags.extended = true;
 	KeyaBusSendData.len = 8;
 	memcpy(KeyaBusSendData.buf, keyaAbsolutePositionMode, 8);
-	//memcpy(KeyaBusSendData.buf, keyaRelativePositionMode, 8);
 	Keya_Bus.write(KeyaBusSendData);
 	Serial.println("Setting position mode (RAM)");
 	Serial.println("Keya CANBUS setup complete");
@@ -267,13 +265,6 @@ void SteerKeya(bool intendToSteer)
 // only issue one query at a time, wait for respone
 void sendKeyaCommand() {
 	Keya_Bus.write(KeyaBusSendData);
-
-	//for (uint8_t i = 0; i < KeyaBusSendData.len; i++) {
-	//	if (KeyaBusSendData.buf[i] < 0x10) Serial.print("0");  // pad single hex digits
-	//	Serial.print(KeyaBusSendData.buf[i], HEX);
-	//	Serial.print(" ");
-	//}
-	//Serial.println();
 }
 
 #endif
