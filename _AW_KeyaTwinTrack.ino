@@ -32,6 +32,7 @@ const int32_t baudRTK = 115200; // most are using Xbee radios with default of 11
 #include <FlexCAN_T4.h>
 
 
+
 elapsedMillis bnoTimer;
 bool bnoTrigger = false;
 
@@ -55,10 +56,12 @@ FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_256> Keya_Bus;
 int32_t intendedSteerAngle = 0;
 
 elapsedMillis lastKeyaHeatbeat;
+int16_t KeyaCenterOffset = 0;
+int16_t lastWASOffset = 0;
 bool updateRawPositionOffset = false;
 bool keyaDetected = false;
 bool keyaIntendToSteer;
-int16_t keyaCurrentSteeringPositionUnScaled = 0;
+int16_t keyaCurrentSteeringPositionScaled = 0;
 int32_t keyaCurrentSteerAngleScaled;
 int16_t keyaCurrentActualSpeed = 0;
 int16_t keyaCurrentSetSpeed = 0; 
@@ -262,7 +265,7 @@ void loop()
 		sendHardwareMessage("Keya CANBUS Lost", 3);
 		keyaDetected = false;
 		intendedSteerAngle = 0;
-		keyaCurrentSteeringPositionUnScaled = 0;
+		keyaCurrentSteeringPositionScaled = 0;
 		keyaCurrentSteerAngleScaled = 0;
 		keyaCurrentActualSpeed = 0;
 		keyaCurrentSetSpeed = 0; 
